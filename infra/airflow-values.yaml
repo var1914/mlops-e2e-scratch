@@ -1,0 +1,129 @@
+# airflow-values.yaml
+# Use KubernetesExecutor for dynamic task execution in k8s
+executor: "KubernetesExecutor"
+# Alternative: use CeleryKubernetesExecutor to combine both approaches
+# executor: "CeleryKubernetesExecutor"
+
+# Custom Docker image with our dependencies
+images:
+  airflow:
+    repository: localhost:5000/airflow
+    tag: 0.0.1
+    pullPolicy: Always
+  useDefaultImageForMigration: true
+    
+# Disable built-in PostgreSQL as you're deploying it separately
+postgresql:
+  enabled: false
+# Set up PostgreSQL connection
+data:
+  metadataConnection:
+    user: airflow
+    pass: airflow
+    host: airflow-postgresql
+    port: 5432
+    db: airflow
+    sslmode: disable
+
+# Disable Redis if you're not using CeleryExecutor
+# redis:
+#   enabled: false  # Change to true if using CeleryExecutor
+
+# # Configure persistence for logs 
+# logs:
+#   persistence:
+#     enabled: true
+#     existingClaim: airflow-logs
+
+# # Configure DAG syncing with Git
+# dags:
+#   persistence:
+#     enabled: true
+#     existingClaim: airflow-dags
+
+# Configure Kubernetes pod template for tasks
+config:
+  kubernetes_executor:
+  ***REMOVED***
+    # Ensure worker pods have access to required resources
+    worker_container_repository: localhost:5000/airflow
+    worker_container_tag: 0.0.1
+
+# Set up web UI
+webserver:
+  defaultUser:
+    enabled: true
+    role: Admin
+    username: admin
+    password: admin
+    email: admin@example.com
+    firstName: Admin
+    lastName: User
+  # Mount the DAGs PVC you've created separately
+  # extraVolumeMounts:
+  #   - name: airflow-dags
+  #     mountPath: /opt/airflow/dags
+  #   - name: llm-pipeline-data
+  #     mountPath: /opt/airflow/data
+
+  # extraVolumes:
+  #   - name: airflow-dags
+  #     persistentVolumeClaim:
+  #       claimName: airflow-dags
+  #   - name: llm-pipeline-data
+  #     persistentVolumeClaim:
+  #       claimName: llm-pipeline-data
+
+# Specify environment variables
+# env:
+#   - name: AIRFLOW__CORE__LOAD_EXAMPLES
+#     value: "False"
+#   - name: AIRFLOW_HOME
+#     value: "/opt/airflow"
+extraEnvFrom: |
+  - secretRef:
+    ***REMOVED***
+  - configMapRef:
+      name: airflow-config
+# Additional configuration to ensure the web UI and scheduler 
+# have access to the same volumes that task pods will use
+# extraVolumes:
+#   - name: huggingface-cache
+#     persistentVolumeClaim:
+#       claimName: huggingface-cache
+#   - name: huggingface-output
+#     persistentVolumeClaim:
+#       claimName: huggingface-output
+#   - name: huggingface-downloads
+#     persistentVolumeClaim:
+#       claimName: huggingface-downloads
+#   - name: inference-results
+#     persistentVolumeClaim:
+#       claimName: inference-results
+#   - name: pipeline-summary
+#     persistentVolumeClaim:
+#       claimName: pipeline-summary
+#   - name: connectors
+#     configMap:
+#       name: llm-pipeline-connectors
+#   - name: utils
+#     configMap:
+#       name: llm-pipeline-utils
+
+# extraVolumeMounts:
+#   - name: huggingface-cache
+#     mountPath: /opt/airflow/data/cache
+#   - name: huggingface-output
+#     mountPath: /opt/airflow/data/output
+#   - name: huggingface-downloads
+#     mountPath: /opt/airflow/data/downloads
+#   - name: inference-results
+#     mountPath: /opt/airflow/data/inference_results
+#   - name: pipeline-summary
+#     mountPath: /opt/airflow/data/pipeline_summary
+#   - name: connectors
+#     mountPath: /opt/airflow/connectors
+#     readOnly: true
+#   - name: utils
+#     mountPath: /opt/airflow/utils
+#     readOnly: true

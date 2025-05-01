@@ -1,0 +1,16 @@
+## PostgreSQL configuration for Airflow metadata database
+global:
+  postgresql:
+    auth:
+      username: airflow
+      password: airflow
+      database: airflow
+    persistence:
+      enabled: true
+      size: 8Gi
+    primary:
+      service:
+        enabled: true
+      persistence:
+        enabled: true
+        size: 8Gi
