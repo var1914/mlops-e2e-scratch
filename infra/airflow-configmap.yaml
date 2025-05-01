@@ -1,0 +1,39 @@
+***REMOVED***
+kind: ConfigMap
+***REMOVED***
+  name: airflow-config
+  labels:
+    app: airflow
+data:
+  # Airflow core settings
+  AIRFLOW__CORE__EXECUTOR: "KubernetesExecutor"
+  AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+  AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags"
+  AIRFLOW__CORE__PARALLELISM: "32"
+  AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: "16"
+  AIRFLOW__CORE__DAG_CONCURRENCY: "16"
+  
+  # Kubernetes settings
+  AIRFLOW__KUBERNETES__NAMESPACE: "airflow"
+  AIRFLOW__KUBERNETES__WORKER_CONTAINER_REPOSITORY: "your-registry/airflow-huggingface"
+  AIRFLOW__KUBERNETES__WORKER_CONTAINER_TAG: "latest"
+  AIRFLOW__KUBERNETES__DELETE_WORKER_PODS: "true"
+  AIRFLOW__KUBERNETES__RUN_AS_USER: "50000"
+  
+  # HuggingFace specific settings
+  HUGGINGFACE_CACHE_DIR: "/opt/airflow/data/cache"
+  HUGGINGFACE_DOWNLOAD_DIR: "/opt/airflow/data/downloads"
+  
+  # Airflow Variables as JSON
+  AIRFLOW_VAR_HUGGINGFACE_CACHE_DIR: "/opt/airflow/data/cache"
+  AIRFLOW_VAR_HUGGINGFACE_DOWNLOAD_DIR: "/opt/airflow/data/downloads"
+  AIRFLOW_VAR_HUGGINGFACE_DOWNLOAD_DATASETS: '[
+    {"id": "squad", "subset": null, "split": "train"},
+    {"id": "glue", "subset": "mrpc", "split": null},
+    {"id": "HuggingFaceTB/cosmopedia", "subset": "stories", "split": null}]'
+  AIRFLOW_VAR_RATE_LIMIT_TOKENS_PER_SECOND: "2"
+  AIRFLOW_VAR_RATE_LIMIT_MAX_TOKENS: "5"
+  AIRFLOW_VAR_RETRY_MAX_RETRIES: "5"
+  AIRFLOW_VAR_RETRY_BASE_DELAY: "1.0"
+  AIRFLOW_VAR_RETRY_MAX_DELAY: "60.0"
+  AIRFLOW_VAR_DOWNLOAD_TIMEOUT: "3600.0"
