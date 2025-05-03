@@ -27,15 +27,11 @@ COPY ./dags/ /opt/airflow/dags/
 COPY ./operators/ /opt/airflow/operators/
 COPY ./connectors/ /opt/airflow/connectors/
 COPY ./utils/ /opt/airflow/utils/
+COPY ./k8_pod_template.yaml /opt/airflow/pod_template/
 
 # Set permissions
 USER root
 RUN chown -R airflow:root /opt/airflow
 USER airflow
-
-# Create data directories
-RUN mkdir -p /opt/airflow/data/cache \
-    && mkdir -p /opt/airflow/data/downloads \
-    && mkdir -p /opt/airflow/config/
 
 WORKDIR /opt/airflow
