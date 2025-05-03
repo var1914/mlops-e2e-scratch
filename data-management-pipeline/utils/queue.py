@@ -6,6 +6,9 @@ import logging
 from typing import Dict, Any, Callable, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 logger = logging.getLogger("llm_queue")
 

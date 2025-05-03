@@ -9,6 +9,9 @@ import json
 import time
 import logging
 from typing import Dict, Any, Optional, List
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults

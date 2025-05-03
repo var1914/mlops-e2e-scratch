@@ -6,9 +6,12 @@ import shutil
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Union, Callable, Tuple
 import requests
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import the base connector
-from base_connector_interface import BaseConnector
+from connectors.base_connector_interface import BaseConnector
 
 # Import our utility modules
 from utils.rate_limiting_utils import TokenBucket, with_retry

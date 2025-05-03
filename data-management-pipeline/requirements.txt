@@ -10,3 +10,4 @@ fsspec>=2023.9.0
 tenacity>=8.2.0
 aiohttp>=3.9.0
 tqdm>=4.66.0
+hf_xet>=0.1.0

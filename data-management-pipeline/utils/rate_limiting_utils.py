@@ -6,6 +6,9 @@ import requests
 from typing import Callable, Any, Dict, Optional, TypeVar, List
 from threading import Lock, Timer
 from datetime import datetime
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 logger = logging.getLogger("rate_limiting")
 
