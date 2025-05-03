@@ -1,0 +1,33 @@
+***REMOVED***
+kind: Pod
+***REMOVED***
+  name: dummy-name  # This is a placeholder and will be replaced by Airflow
+  labels:
+    app: airflow-worker
+spec:
+  containers:
+    - name: base  # The name 'base' is required by Airflow
+      image: your-registry/airflow-huggingface:latest  # This will be replaced by the correct image
+      securityContext:
+        runAsUser: 50000
+        fsGroup: 50000
+      volumeMounts:
+        - name: airflow-data
+          mountPath: "/opt/airflow/data"
+        - name: airflow-dags
+          mountPath: "/opt/airflow/dags"
+          readOnly: true  # DAGs volume is read-only
+        - name: airflow-logs
+          mountPath: "/opt/airflow/logs"
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "1000m" 
+          memory: "2Gi"
+  volumes:
+    - name: airflow-data
+      persistentVolumeClaim:
+        claimName: airflow-data-pvc
+  restartPolicy: Never
