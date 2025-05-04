@@ -1,7 +1,3 @@
-from datasets import load_dataset
-
-ds = load_dataset("HuggingFaceTB/cosmopedia", "stories")
-
 from abc import ABC, abstractmethod
 import logging
 from typing import Dict, Any, Optional
