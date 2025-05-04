@@ -34,4 +34,9 @@ USER root
 RUN chown -R airflow:root /opt/airflow
 USER airflow
 
+# Create data directories
+RUN mkdir -p /opt/airflow/data/cache \
+    && mkdir -p /opt/airflow/data/downloads \
+    && mkdir -p /opt/airflow/config/
+    
 WORKDIR /opt/airflow
