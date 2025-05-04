@@ -8,6 +8,16 @@ from typing import Dict, Any, Optional, List, Union, Callable, Tuple
 import requests
 import sys
 import os
+import queue
+import threading
+import time
+import logging
+from datetime import datetime
+from typing import Dict, Any, Callable, List, Optional, Tuple
+from dataclasses import dataclass
+from datasets import load_dataset, get_dataset_config_names
+from huggingface_hub import login
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import the base connector
@@ -143,7 +153,7 @@ class HuggingFaceDatasetConnector(BaseConnector):
             headers = {"Authorization": f"Bearer {self.api_key}"}
             response = self._make_api_request(
                 method="GET",
-                endpoint="/gpt2/resolve/main/README.md",  # Example of a simple API call
+                endpoint="/HuggingFaceTB/cosmopedia",  # Example of a simple API call
                 description="connection test"
             )
             
@@ -154,6 +164,14 @@ class HuggingFaceDatasetConnector(BaseConnector):
                     "connected_at": time.time(),
                     "authenticated": authenticated
                 }
+                # Set up authentication for the datasets library
+                if authenticated:
+                    try:
+                        login(token=self.api_key)
+                        self.logger.info("Successfully set up authentication for datasets library")
+                    except Exception as e:
+                        self.logger.warning(f"Failed to set up datasets library authentication: {str(e)}")
+                        # Continue anyway, as direct API access is authenticated
                 if not authenticated:
                     self.logger.warning("Connected to API but authentication failed")
                 else:
@@ -436,8 +454,8 @@ class HuggingFaceDatasetConnector(BaseConnector):
         
         # If using queue and not waiting, add to queue and return request ID
         if self.use_queue and not wait:
-            request_id = str(time.time())
-            self.queue.add_request(
+            # Use the request ID returned by add_request
+            request_id = self.queue.add_request(
                 dataset_id=dataset_id,
                 subset=subset,
                 split=split,
@@ -454,8 +472,8 @@ class HuggingFaceDatasetConnector(BaseConnector):
         
         # If using queue and waiting, add to queue and wait for result
         elif self.use_queue and wait:
-            request_id = str(time.time())
-            self.queue.add_request(
+            # Use the request ID returned by add_request
+            request_id = self.queue.add_request(
                 dataset_id=dataset_id,
                 subset=subset,
                 split=split,
@@ -506,7 +524,6 @@ class HuggingFaceDatasetConnector(BaseConnector):
         """
         try:
             # Use the datasets library for efficient downloading
-            from datasets import load_dataset, get_dataset_config_names
             
             start_time = time.time()
             self.logger.info(f"Starting download of dataset {dataset_id}")
@@ -537,7 +554,7 @@ class HuggingFaceDatasetConnector(BaseConnector):
             # Prepare download arguments
             load_args = {
                 "path": dataset_id,
-                "cache_dir": self.cache_dir
+                
             }
             if subset:
                 load_args["name"] = subset
@@ -604,6 +621,7 @@ class HuggingFaceDatasetConnector(BaseConnector):
             
         except Exception as e:
             self.logger.exception(f"Exception during dataset download: {str(e)}")
+            self.logger.exception(f"Failed to download dataset {dataset_id}: {str(e)}")
             return {
                 "error": str(e),
                 "dataset_id": dataset_id,
@@ -751,7 +769,7 @@ class DatasetDownloadQueue:
         try:
             self.queue.put((priority, timestamp, request), block=True, timeout=1.0)
             self.logger.debug(f"Added request {request_id} to queue (priority {priority})")
-            return request_id
+            return request_id  # Return the actual request ID used internally
         except queue.Full:
             self.logger.warning("Queue is full, request rejected")
             raise RuntimeError("Dataset download queue is full")
@@ -823,12 +841,3 @@ class DatasetDownloadQueue:
             except Exception as e:
                 self.logger.error(f"Unexpected error in dataset queue worker: {str(e)}")
                 time.sleep(1)  # Avoid tight loop in case of recurring errors
-
-# Import this at the top level
-import queue
-import threading
-import time
-import logging
-from datetime import datetime
-from typing import Dict, Any, Callable, List, Optional, Tuple
-from dataclasses import dataclass
