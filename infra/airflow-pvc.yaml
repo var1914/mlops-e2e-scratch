@@ -1,0 +1,31 @@
+***REMOVED***
+kind: PersistentVolumeClaim
+***REMOVED***
+  name: airflow-logs-pvc
+***REMOVED***
+  labels:
+    app: airflow
+    airflow-component: logs
+spec:
+  accessModes:
+    - ReadWriteOnce  # Use ReadWriteMany if available
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+***REMOVED***
+kind: PersistentVolumeClaim
+***REMOVED***
+  name: airflow-data-pvc
+***REMOVED***
+  labels:
+    app: airflow
+    airflow-component: data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: standard

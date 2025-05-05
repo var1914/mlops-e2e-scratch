@@ -7,6 +7,10 @@ which can be resource-intensive and time-consuming.
 import os
 import json
 from datetime import datetime, timedelta
+import sys
+
+# Add parent directory to path - move this into a function if possible
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -14,8 +18,10 @@ from airflow.operators.dummy import DummyOperator
 from airflow.models import Variable
 from airflow.utils.task_group import TaskGroup
 
-# Import our custom operators
-from operators.huggingface_operators import HuggingFaceDownloadOperator
+# Import our custom operators - this will be deferred to execution time
+def import_operators():
+    from operators.huggingface_operators import HuggingFaceDownloadOperator
+    return HuggingFaceDownloadOperator
 
 # Default arguments for DAG
 default_args = {
@@ -28,25 +34,45 @@ default_args = {
     'execution_timeout': timedelta(hours=6),  # Longer timeout for downloads
 }
 
+# # Executor config for ensuring proper volume mounts
+# k8s_executor_config = {
+#     "KubernetesExecutor": {
+#         "volume_mounts": [
+#             {
+#                 "name": "airflow-data",
+#                 "mountPath": "/opt/airflow/data"
+#             }
+#         ],
+#         "volumes": [
+#             {
+#                 "name": "airflow-data",
+#                 "persistentVolumeClaim": {
+#                     "claimName": "airflow-data-pvc"
+#                 }
+#             }
+#         ]
+#     }
+# }
+
 # Get configuration from Airflow Variables
 def get_download_config():
     # You can set these in the Airflow UI as Variables
     config = {
-        "api_key": Variable.get("huggingface_api_key", default_var="YOUR_HUGGINGFACE_API_KEY"),
-        "cache_dir": Variable.get("huggingface_cache_dir", default_var="./data/cache"),
-        "download_dir": Variable.get("huggingface_download_dir", default_var="./data/downloads"),
+        "api_key": Variable.get("HUGGINGFACE_API_KEY", default_var="YOUR_HUGGINGFACE_API_KEY"),
+        "cache_dir": Variable.get("HUGGINGFACE_CACHE_DIR", default_var="./data/cache"),
+        "download_dir": Variable.get("HUGGINGFACE_DOWNLOAD_DIR", default_var="./data/downloads"),
         # Example: [{"id": "squad", "subset": null, "split": "train"}, {"id": "glue", "subset": "mrpc"}]
-        "datasets_to_download": json.loads(Variable.get("huggingface_download_datasets", default_var='[{"id": "squad"}, {"id": "glue", "subset": "mrpc"}]')),
+        "datasets_to_download": json.loads(Variable.get("HUGGINGFACE_DOWNLOAD_DATASETS", default_var='[{}]')),
         "rate_limit": {
-            "tokens_per_second": int(Variable.get("rate_limit_tokens_per_second", default_var=2)),
-            "max_tokens": int(Variable.get("rate_limit_max_tokens", default_var=5))
+            "tokens_per_second": int(Variable.get("RATE_LIMIT_TOKENS_PER_SECOND", default_var=2)),
+            "max_tokens": int(Variable.get("RATE_LIMIT_MAX_TOKENS", default_var=5))
         },
         "retry": {
-            "max_retries": int(Variable.get("retry_max_retries", default_var=5)),
-            "base_delay": float(Variable.get("retry_base_delay", default_var=1.0)),
-            "max_delay": float(Variable.get("retry_max_delay", default_var=60))
+            "max_retries": int(Variable.get("RETRY_MAX_RETRIES", default_var=5)),
+            "base_delay": float(Variable.get("RETRY_BASE_DELAY", default_var=1.0)),
+            "max_delay": float(Variable.get("RETRY_MAX_DELAY", default_var=60))
         },
-        "timeout": float(Variable.get("download_timeout", default_var=3600.0))  # 1 hour default
+        "timeout": float(Variable.get("DOWNLOAD_TIMEOUT", default_var=3600.0))  # 1 hour default
     }
     return config
 
@@ -111,6 +137,56 @@ def generate_download_report(**context):
     
     return report
 
+# Function to create download tasks - this runs at execution time, not import time
+def create_download_tasks(dag, task_group):
+    config = get_download_config()
+    HuggingFaceDownloadOperator = import_operators()
+    
+    # Create a task for each dataset to download
+    download_tasks = []
+    for dataset_config in config["datasets_to_download"]:
+        dataset_id = dataset_config["id"]
+        subset = dataset_config.get("subset")
+        split = dataset_config.get("split")
+        revision = dataset_config.get("revision")
+        
+        # Create sanitized ID for task naming
+        task_id_parts = [dataset_id.replace('/', '_')]
+        if subset:
+            task_id_parts.append(subset)
+        if split:
+            task_id_parts.append(split)
+        task_id = '_'.join(task_id_parts)
+        
+        # Define the output directory
+        output_dir = os.path.join(
+            config["download_dir"],
+            dataset_id.replace('/', '_'),
+            subset or "default",
+            split or "all"
+        )
+        
+        # Add download task
+        download_task = HuggingFaceDownloadOperator(
+            task_id=f'download_{task_id}',
+            dataset_id=dataset_id,
+            subset=subset,
+            split=split,
+            revision=revision,
+            output_dir=output_dir,
+            api_key=config["api_key"],
+            cache_dir=config["cache_dir"],
+            rate_limit=config["rate_limit"],
+            retry=config["retry"],
+            timeout=config["timeout"],
+            dag=dag,
+            task_group=task_group,
+            # executor_config=k8s_executor_config,
+        )
+        download_tasks.append(download_task)
+    
+    return download_tasks
+
 # Define the DAG
 with DAG(
     'huggingface_dataset_downloads',
@@ -132,57 +208,34 @@ with DAG(
         task_id='setup_download_directories',
         python_callable=create_download_directories,
         provide_context=True,
+        # executor_config=k8s_executor_config,
     )
     
     # Dataset Download Task Group
-    with TaskGroup(group_id='dataset_downloads') as dataset_downloads:
-        config = get_download_config()
-        
-        # Create a task for each dataset to download
-        download_tasks = []
-        for dataset_config in config["datasets_to_download"]:
-            dataset_id = dataset_config["id"]
-            subset = dataset_config.get("subset")
-            split = dataset_config.get("split")
-            revision = dataset_config.get("revision")
-            
-            # Create sanitized ID for task naming
-            task_id_parts = [dataset_id.replace('/', '_')]
-            if subset:
-                task_id_parts.append(subset)
-            if split:
-                task_id_parts.append(split)
-            task_id = '_'.join(task_id_parts)
-            
-            # Define the output directory
-            output_dir = os.path.join(
-                config["download_dir"],
-                dataset_id.replace('/', '_'),
-                subset or "default",
-                split or "all"
-            )
-            
-            # Add download task
-            download_task = HuggingFaceDownloadOperator(
-                task_id=f'download_{task_id}',
-                dataset_id=dataset_id,
-                subset=subset,
-                split=split,
-                revision=revision,
-                output_dir=output_dir,
-                api_key=config["api_key"],
-                cache_dir=config["cache_dir"],
-                rate_limit=config["rate_limit"],
-                retry=config["retry"],
-                timeout=config["timeout"]
-            )
-            download_tasks.append(download_task)
+    dataset_downloads = TaskGroup(group_id='dataset_downloads')
+    
+    # This creates the download tasks at execution time instead of import time
+    # We'll use a PythonOperator to dynamically create the tasks
+    def setup_download_tasks(**context):
+        # This function will be called at execution time, not import time
+        download_tasks = create_download_tasks(dag, dataset_downloads)
+        return "Created download tasks: " + ", ".join([task.task_id for task in download_tasks])
+    
+    # A dummy task that will trigger the task creation
+    setup_downloads = PythonOperator(
+        task_id='setup_download_tasks',
+        python_callable=setup_download_tasks,
+        provide_context=True,
+        dag=dag,
+        task_group=dataset_downloads,
+    )
     
     # Generate download report
     report_task = PythonOperator(
         task_id='generate_download_report',
         python_callable=generate_download_report,
         provide_context=True,
+        # executor_config=k8s_executor_config
     )
     
     # End the pipeline
