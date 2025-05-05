@@ -2,21 +2,19 @@
 kind: Pod
 ***REMOVED***
   name: dummy-name  # This is a placeholder and will be replaced by Airflow
+***REMOVED***
   labels:
     app: airflow-worker
 spec:
   containers:
     - name: base  # The name 'base' is required by Airflow
-      image: your-registry/airflow-huggingface:latest  # This will be replaced by the correct image
+      image: localhost:5000/airflow:0.0.1 # This will be replaced by the correct image
       securityContext:
         runAsUser: 50000
         fsGroup: 50000
       volumeMounts:
         - name: airflow-data
           mountPath: "/opt/airflow/data"
-        - name: airflow-dags
-          mountPath: "/opt/airflow/dags"
-          readOnly: true  # DAGs volume is read-only
         - name: airflow-logs
           mountPath: "/opt/airflow/logs"
       resources:
@@ -26,8 +24,17 @@ spec:
         limits:
           cpu: "1000m" 
           memory: "2Gi"
+      env:
+        - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+          valueFrom:
+            secretKeyRef:
+              name: airflow-metadata
+              key: connection
   volumes:
     - name: airflow-data
       persistentVolumeClaim:
         claimName: airflow-data-pvc
+    - name: airflow-logs
+      persistentVolumeClaim:
+        claimName: airflow-logs-pvc
   restartPolicy: Never
