@@ -75,7 +75,7 @@ class BaseConnector(ABC):
             Dict containing metadata about the connector's operations
         """
         self.metadata["last_logged"] = datetime.now().isoformat()
-        self.logger.info(f"Connector ***REMOVED*** {self.metadata}")
+        self.logger.info(f"Connector metadata: {self.metadata}")
         return self.metadata
     
     def close(self) -> None:

@@ -97,7 +97,7 @@ def main():
             print("Timeout waiting for download to complete")
     
     # Get connector metadata
-    print("\nConnector ***REMOVED***")
+    print("\nConnector metadata:")
     metadata = connector.log_metadata()
     print(f"Connection attempts: {metadata.get('connection_attempts')}")
     print(f"Records processed: {metadata.get('records_processed')}")

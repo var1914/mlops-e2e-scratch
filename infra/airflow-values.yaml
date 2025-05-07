@@ -38,7 +38,6 @@ logs:
 # Configure Kubernetes pod template for tasks
 config:
   kubernetes_executor:
-  ***REMOVED***
     worker_container_repository: localhost:5000/airflow
     worker_container_tag: 0.0.1
     
@@ -65,7 +64,7 @@ webserver:
 
 extraEnvFrom: |
   - secretRef:
-    ***REMOVED***
+      name: airflow-secrets
   - configMapRef:
       name: airflow-extra-config
       

@@ -42,7 +42,7 @@ class DatasetRequest:
     timestamp: float
     priority: int = 0
     callback: Optional[Callable] = None
-    ***REMOVED*** Dict[str, Any] = None
+    metadata: Optional[Dict[str, Any]] = None
 
 class HuggingFaceDatasetConnector(BaseConnector):
     """
@@ -746,7 +746,7 @@ class DatasetDownloadQueue:
         target_dir: Optional[str] = None,
         priority: int = 0,
         callback: Optional[Callable] = None,
-        ***REMOVED*** Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None
     ) -> str:
         """Add a dataset download request to the queue."""
         request_id = str(time.time()) + "_" + dataset_id.replace("/", "_")

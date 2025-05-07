@@ -1,8 +1,8 @@
-***REMOVED***
+apiVersion: v1
 kind: ConfigMap
-***REMOVED***
+metadata:
   name: airflow-extra-config
-***REMOVED***
+  namespace: airflow
   labels:
     app: airflow
 data:

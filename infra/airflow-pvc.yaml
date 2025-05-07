@@ -1,8 +1,8 @@
-***REMOVED***
+apiVersion: v1
 kind: PersistentVolumeClaim
-***REMOVED***
+metadata:
   name: airflow-logs-pvc
-***REMOVED***
+  namespace: airflow
   labels:
     app: airflow
     airflow-component: logs
@@ -14,11 +14,11 @@ spec:
       storage: 10Gi
 
 ---
-***REMOVED***
+apiVersion: v1
 kind: PersistentVolumeClaim
-***REMOVED***
+metadata:
   name: airflow-data-pvc
-***REMOVED***
+  namespace: airflow
   labels:
     app: airflow
     airflow-component: data

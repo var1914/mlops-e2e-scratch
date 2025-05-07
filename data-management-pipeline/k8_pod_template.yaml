@@ -1,8 +1,8 @@
-***REMOVED***
+apiVersion: v1
 kind: Pod
-***REMOVED***
+metadata:
   name: dummy-name  # This is a placeholder and will be replaced by Airflow
-***REMOVED***
+  namespace: airflow
   labels:
     app: airflow-worker
 spec:
